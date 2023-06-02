@@ -36,6 +36,14 @@ namespace WebCrawlerQnA
                 new Option<int>(new []{"-t","--tpm" }, ()=>150_000, "tokens per minute")
             };
 
+            var buildPDFCommand = new Command("buildPDF", "build the QnA")
+            {
+                new Argument<string>("url", "root url to crawl"),
+                new Option<string>(new []{"-p","--path" }, ()=>@"d:\data\", "data path"),
+                new Option<int>(new []{"-r","--rpm" }, ()=>20, "request per minute"),
+                new Option<int>(new []{"-t","--tpm" }, ()=>150_000, "tokens per minute")
+            };
+
 
             var askCommand = new Command("ask", "ask questions")
             {
@@ -55,6 +63,19 @@ namespace WebCrawlerQnA
                 await TextEmbedding.CreateEmbeddings(openAiService, df, domain, rpm, tpm);
             });
 
+
+            buildPDFCommand.Handler = CommandHandler.Create<string, string, int, int>(async (string url, string path, int rpm, int tpm) =>
+            {
+                var domain = new Uri(url).Host;
+                Directory.SetCurrentDirectory(path);
+                await PDFCrawler.CrawlAsync(url);
+                TextProcessor.ProcessTextFiles(domain);
+                var df = TextTokenizer.TokenizeTextFile(domain);
+                await TextEmbedding.CreateEmbeddings(openAiService, df, domain, rpm, tpm);
+            });
+
+
+
             askCommand.Handler = CommandHandler.Create<string,string,string>(async (string url, string path, string question) =>
             {
                 var domain = new Uri(url).Host;
@@ -69,6 +90,7 @@ namespace WebCrawlerQnA
             var rootCommand = new RootCommand("A simple Q&A CLI application.")
             {
                 buildCommand,
+                buildPDFCommand,
                 askCommand
             };
 
