@@ -1,10 +1,13 @@
 ﻿using HtmlAgilityPack;
-using iTextSharp.text.pdf;
-using iTextSharp.text.pdf.parser;
+using iText.Kernel.Pdf;
+using iText.Kernel.Pdf.Canvas.Parser;
+using iText.Kernel.Pdf.Canvas.Parser.Listener;
 using System.Net;
 using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
+
+
 
 namespace WebCrawlerQnA
 {
@@ -67,7 +70,6 @@ namespace WebCrawlerQnA
                         await writer.WriteAsync(text);
                     }
 
-
                               
             }
 
@@ -75,12 +77,17 @@ namespace WebCrawlerQnA
             {
                 using (PdfReader reader = new PdfReader(filePath))
                 {
-                    StringBuilder text = new StringBuilder();
-                    for (int i = 1; i <= reader.NumberOfPages; i++)
+                    using (PdfDocument pdfDoc = new PdfDocument(reader))
                     {
-                        text.Append(PdfTextExtractor.GetTextFromPage(reader, i));
+                        StringBuilder text = new StringBuilder();
+                        for (int i = 1; i <= pdfDoc.GetNumberOfPages(); i++)
+                        {
+                            ITextExtractionStrategy strategy = new SimpleTextExtractionStrategy();
+                            string pageText = PdfTextExtractor.GetTextFromPage(pdfDoc.GetPage(i), strategy);
+                            text.Append(pageText);
+                        }
+                        return text.ToString();
                     }
-                    return text.ToString();
                 }
             }
 
